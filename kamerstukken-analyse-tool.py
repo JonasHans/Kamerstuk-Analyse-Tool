@@ -13,6 +13,24 @@ kamerstukken = {}
 import nltk
 from nltk.corpus import stopwords
 
+# Sklearn TF-IDF
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Wordcoud
+import numpy as np
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from PIL import Image
+from os import path
+import os
+
+# Manual filter words
+filterWords = ["nadruk","voet","noot","extref","cur",
+"agenda", "entry","https", "nr","actief","left","we","document","vet",
+"binnen","vraag","brief","wij", "top", "motie", "ten", "row"
+,"zie", "0", "1", "tussen", "antwoord","tekstregel","titel", "gebruik", "li", "2"]
+
+
 def retrieveXML(kamerstuk):
 	retrievedKS = Kamerstuk()
 	# Pretend we are a google bot to avoid cookie popups https://support.google.com/webmasters/answer/1061943
@@ -58,12 +76,12 @@ def parseXML(kamerstuk, rawText):
 def findImportantTerms(text):
 	cleanText = NLTKremoveStopwords(nltk.word_tokenize(text))
 	freq = nltk.FreqDist(cleanText)
-	return freq.most_common(10)
+	return freq.most_common(50)
 
 # NLTK token cleansing method which removes stopwords, non alpha words and digits
 def NLTKremoveStopwords(tokens):
 	tokens = NLTKlowerCaseTokens(tokens)
-	return list(filter(lambda word: (word.lower() not in stopwords.words('dutch')) and (word.isalpha() or word.isdigit()) ,tokens))
+	return list(filter(lambda word: (word not in stopwords.words('dutch')) and (word.isalpha() or word.isdigit()) and (word not in filterWords) ,tokens))
 
 # Method which lowercases tokens
 def NLTKlowerCaseTokens(tokens):
@@ -114,7 +132,7 @@ def parseOverzicht():
 			except Exception as error: 
 				print(error)
 				failed = failed + 1
-
+			
 	print('Succes: '+str(succes))
 	print('Failed: '+str(failed))
 
@@ -156,10 +174,35 @@ def retrieveNewKamerstukken(refs):
 				print("Failed to search new Kamerstuk")
 		
 
+def processAllKamerstukkenToWordCloud():
+	freqDict = {}
+	for ks in kamerstukken:
+		terms = kamerstukken[ks].freqTerms
+		for term in terms:
+			if term[0] in freqDict:
+				freqDict[term[0]] = freqDict[term[0]] + term[1]
+			else:
+				freqDict[term[0]] = term[1]
+
+	makeWordCloud(freqDict)
+
+def makeWordCloud(wordsAndFreqs):
+	wc = WordCloud(max_words=500, width=3000, height=1500, relative_scaling=0.2)
+    
+    # generate word cloud
+	wc.generate_from_frequencies(wordsAndFreqs)
+	wc.to_file("kamerstukken-wordcloud-50mostcommon-max500.png")
+
 def main():
+	# Parse overzicht kamerstukken
 	parseOverzicht()
-	kamerstukkenReferenties = countKamerstukRefs()
-	retrieveNewKamerstukken(kamerstukkenReferenties)
+
+	# Make wordcloud from kamerstukken
+	processAllKamerstukkenToWordCloud()
+
+	# Referenties kamerstukken
+	# kamerstukkenReferenties = countKamerstukRefs()
+	# retrieveNewKamerstukken(kamerstukkenReferenties)
 
 if __name__== "__main__":
 	main()
