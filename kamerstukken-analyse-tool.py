@@ -46,6 +46,24 @@ def retrieveXML(kamerstuk):
 
 	return retrievedKS
 
+def findDepartement(title):
+	if "economische" in title.lower():
+		return "EZK"
+	elif "binnenlandse" in title.lower():
+		return "BZK"
+	elif "buitenlandse" in title.lower():
+		return "BZ"
+	elif "rechtsbescherming" in title.lower():
+		return "rechtsbescherming"
+	elif "justitie" in title.lower():
+		return "JENV"
+	elif "sociale" in title.lower():
+		return "SZW"
+	elif "onderwijs" in title.lower():
+		return "OCW"
+	else:
+		return "OVERIG"
+
 def parseXML(kamerstuk, rawText):
 	global kamerstukken
 
@@ -58,7 +76,7 @@ def parseXML(kamerstuk, rawText):
 	stuknr = root.find('kamerstuk/stuk/stuknr/ondernummer').text
 	kamerstuk.nummer = 'kst-'+dossiernr+'-'+stuknr
 	kamerstuk.titel = root.find('kamerstuk/stuk/titel').text
-	
+	kamerstuk.departement = findDepartement(kamerstuk.titel)
 	kamerstuk.freqTerms = findImportantTerms(str(rawText))
 
 	#kamerstuk references
@@ -177,21 +195,31 @@ def retrieveNewKamerstukken(refs):
 def processAllKamerstukkenToWordCloud():
 	freqDict = {}
 	for ks in kamerstukken:
-		terms = kamerstukken[ks].freqTerms
-		for term in terms:
-			if term[0] in freqDict:
-				freqDict[term[0]] = freqDict[term[0]] + term[1]
-			else:
-				freqDict[term[0]] = term[1]
+		if kamerstukken[ks].departement == "OCW":
+			terms = kamerstukken[ks].freqTerms
+			for term in terms:
+				if term[0] in freqDict:
+					freqDict[term[0]] = freqDict[term[0]] + term[1]
+				else:
+					freqDict[term[0]] = term[1]
 
 	makeWordCloud(freqDict)
 
 def makeWordCloud(wordsAndFreqs):
 	wc = WordCloud(max_words=500, width=3000, height=1500, relative_scaling=0.2)
-    
+	wc250 = WordCloud(max_words=250, width=3000, height=1500, relative_scaling=0.2)
+	wc100 = WordCloud(max_words=100, width=3000, height=1500, relative_scaling=0.2)
+
     # generate word cloud
 	wc.generate_from_frequencies(wordsAndFreqs)
-	wc.to_file("kamerstukken-wordcloud-50mostcommon-max500.png")
+	wc.to_file("kamerstukken-wordcloud-OCW-500.png")
+
+	wc250.generate_from_frequencies(wordsAndFreqs)
+	wc250.to_file("kamerstukken-wordcloud-OCW-250.png")
+
+	wc100.generate_from_frequencies(wordsAndFreqs)
+	wc100.to_file("kamerstukken-wordcloud-OCW-100.png")
+
 
 def main():
 	# Parse overzicht kamerstukken
